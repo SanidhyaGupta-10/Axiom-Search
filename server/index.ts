@@ -3,7 +3,7 @@ import { tavily } from '@tavily/core';
 import { streamText, Output } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { z } from 'zod';
-import { SYSTEM_PROMPT, PROMPT_TEMPLATE } from './prompt';
+import { SYSTEM_PROMPT, PROMPT_TEMPLATE, formatSearchResults } from './prompt';
 
 const app = express();
 const client = tavily({ apiKey: process.env.TAVILY_API_KEY });
@@ -26,8 +26,11 @@ app.post('/perplexity-ask', async (req, res) => {
     const webSearchResults = webSearchResponse.results;
 
     // context engineering on the prompt + web search responses
+    // Format results as indexed sources so the LLM can cite [1], [2], etc.
+    const formattedResults = formatSearchResults(webSearchResults);
+
     const prompt = PROMPT_TEMPLATE
-        .replace("{{WEB_SEARCH_RESULTS}}", JSON.stringify(webSearchResults))
+        .replace("{{WEB_SEARCH_RESULTS}}", formattedResults)
         .replace("{{USER_QUERY}}", query);
 
     // hit the LLM and stream back the response
@@ -43,7 +46,12 @@ app.post('/perplexity-ask', async (req, res) => {
         }),
     });
 
-    return result.pipeTextStreamToResponse(res);
+    for await (const textPart of result.textStream) {
+        res.end(textPart)
+    }
+
+    res.end('\n------SOURCES-------\n');
+    webSearchResults.forEach();
 });
 
 app.listen(3000, () => {
