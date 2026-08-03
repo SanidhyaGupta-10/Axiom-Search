@@ -8,18 +8,12 @@ Axiom Search takes a user query, performs an advanced web search via [Tavily](ht
 
 ## Architecture
 
-```
-┌──────────────┐       POST /perplexity-ask       ┌──────────────────┐
-│   React +    │  ──────────────────────────────►  │  Express Server  │
-│   Vite App   │  ◄──────────────────────────────  │   (Bun runtime)  │
-└──────────────┘       Streamed JSON response      └────────┬─────────┘
-                                                            │
-                                              ┌─────────────┼─────────────┐
-                                              ▼                           ▼
-                                     ┌────────────────┐         ┌────────────────┐
-                                     │  Tavily Search  │         │   Groq LLM     │
-                                     │  (Web Results)  │         │ (Llama 3.3 70B)│
-                                     └────────────────┘         └────────────────┘
+```mermaid
+graph LR
+    A["React + Vite App"] -- "POST /perplexity-ask" --> B["Express Server (Bun)"]
+    B -- "Streamed JSON" --> A
+    B --> C["Tavily Search"]
+    B --> D["Groq LLM (Llama 3.3 70B)"]
 ```
 
 ## Tech Stack
