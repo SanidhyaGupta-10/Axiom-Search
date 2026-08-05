@@ -49,6 +49,7 @@ app.post('/perplexity-ask', async (req, res) => {
 
     res.end('\n------SOURCES-------\n');
     webSearchResults.forEach(result => res.end(JSON.stringify(result, null, 2)));
+    res.end();
 });
 
 app.listen(3000, () => {
