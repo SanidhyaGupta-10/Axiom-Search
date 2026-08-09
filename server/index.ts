@@ -1,8 +1,7 @@
 import express from 'express';
 import { tavily } from '@tavily/core';
-import { streamText, Output } from 'ai';
+import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
-import { z } from 'zod';
 import { SYSTEM_PROMPT, PROMPT_TEMPLATE } from './prompt';
 
 const app = express();
@@ -35,20 +34,14 @@ app.post('/perplexity-ask', async (req, res) => {
         model: groq('llama-3.3-70b-versatile'),
         prompt: prompt,
         system: SYSTEM_PROMPT,
-        output: Output.object({
-            schema: z.object({
-                followUps: z.array(z.string()),
-                answer: z.string()
-            }),
-        }),
     });
 
     for await (const textPart of result.textStream) {
-        res.end(textPart)
+        res.write(textPart);
     }
 
-    res.end('\n------SOURCES-------\n');
-    webSearchResults.forEach(result => res.end(JSON.stringify(result, null, 2)));
+    res.write('\n------SOURCES-------\n');
+    webSearchResults.forEach(result => res.write(JSON.stringify(result, null, 2)));
     res.end();
 });
 
