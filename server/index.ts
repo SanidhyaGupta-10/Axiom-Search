@@ -9,6 +9,31 @@ const client = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 app.use(express.json());
 
+app.post('/signup', async () => {
+    
+});
+
+app.post('/signin', async () => {
+
+});
+
+app.get('/conversations', async () => {
+    // get the user
+    // 
+});
+
+app.post('/conversations', async () => {
+    // create new conversation for the user
+});
+
+app.get('/conversations/:conversationId', async () => {
+    // get the conversation
+});
+
+app.post('/conversations/:conversationId', async () => {
+    // 
+});
+
 app.post('/perplexity-ask', async (req, res) => {
     // get the query from the user
     const query = req.body.query;
@@ -41,9 +66,16 @@ app.post('/perplexity-ask', async (req, res) => {
     }
 
     res.write('\n------SOURCES-------\n');
-    webSearchResults.forEach(result => res.write(JSON.stringify(result, null, 2)));
+    webSearchResults.forEach(result => res.write(JSON.stringify(result.url)));
     res.end();
 });
+
+app.post('/perplexity_ask/follow_up', async (req, res) => {
+    // Step1 - get the existing chat from the db,
+    // Step2 - Forward the full history to the LLM
+    // Step3 - Stream the response back to the user
+    // Step4 - Update the chat in db with latest user message + new LLM response
+})
 
 app.listen(3000, () => {
     console.log("Server running on http://localhost:3000");
