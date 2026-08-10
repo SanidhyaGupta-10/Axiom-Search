@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.17",
+    "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@tavily/core": "^0.7.6",
     "@types/express": "^5.0.6",
