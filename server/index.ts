@@ -3,6 +3,7 @@ import { tavily } from '@tavily/core';
 import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { SYSTEM_PROMPT, PROMPT_TEMPLATE } from './prompt';
+import prisma from './db';
 
 const app = express();
 const client = tavily({ apiKey: process.env.TAVILY_API_KEY });
