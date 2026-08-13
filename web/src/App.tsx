@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router"
+import { BrowserRouter, Route, Routes } from "react-router"
 import Auth from "./pages/Auth"
 
 function App() {
@@ -10,5 +10,4 @@ function App() {
     </BrowserRouter>
   )
 }
-
-export default App   
+export default App
