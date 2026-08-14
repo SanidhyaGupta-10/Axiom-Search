@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
+import axios from "axios"
+import { BACKEND_URL } from "@/config"
 
 const supabase = createClient()
 
@@ -19,7 +21,19 @@ export default function Dashboard() {
             }
         }
         getInfo();
-    },[])
+    },[]);
+
+    useEffect(() => {
+        async function getConversations(){
+            if (user) {
+                const { data: { session } } = await supabase.auth.getSession();
+                const jwt = session?.access_token;
+
+                axios.post(`${BACKEND_URL}`)
+            }
+        }
+        getConversations();
+    }, [])
 
     return (
         <div>
