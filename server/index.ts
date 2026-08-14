@@ -4,30 +4,31 @@ import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { SYSTEM_PROMPT, PROMPT_TEMPLATE } from './prompt';
 import prisma from './db';
+import { middleware } from './middleware';
 
 const app = express();
 const client = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 app.use(express.json());
 
-app.get('/conversations', async () => {
+app.get('/conversations', middleware ,async () => {
     // get the user
     // 
 });
 
-app.post('/conversations', async () => {
+app.post('/conversations', middleware, async () => {
     // create new conversation for the user
 });
 
-app.get('/conversations/:conversationId', async () => {
+app.get('/conversations/:conversationId', middleware, async () => {
     // get the conversation
 });
 
-app.post('/conversations/:conversationId', async () => {
+app.post('/conversations/:conversationId', middleware, async () => {
     // 
 });
 
-app.post('/perplexity-ask', async (req, res) => {
+app.post('/perplexity-ask', middleware, async (req, res) => {
     // get the query from the user
     const query = req.body.query;
 
@@ -70,7 +71,7 @@ app.post('/perplexity_ask/follow_up', async (req, res) => {
     // Step4 - Update the chat in db with latest user message + new LLM response
 })
 
-app.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+app.listen(3002, () => {
+    console.log("Server running on http://localhost:3002");
 });
 

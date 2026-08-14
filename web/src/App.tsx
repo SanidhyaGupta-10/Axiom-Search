@@ -1,14 +1,16 @@
-import { BrowserRouter, Routes, Route } from "react-router"
+import { BrowserRouter, Route, Routes } from "react-router"
 import Auth from "./pages/Auth"
+import Dashboard from "./pages/Dashboard"
 
-function App() {
+export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Auth />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/auth" element={<Auth />} />
       </Routes>
     </BrowserRouter>
   )
 }
 
-export default App   
+export default App
