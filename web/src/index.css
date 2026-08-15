@@ -172,28 +172,48 @@ body {
   color: #555858;
 }
 
-.thread-item {
+.thread-item-wrapper {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   width: 100%;
   padding: 8px 10px;
   border-radius: 6px;
   background: transparent;
-  border: none;
   color: #a0a3a3;
   font-size: 13px;
-  text-align: left;
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.thread-item:hover {
+.thread-item-wrapper:hover {
   background: #202222;
   color: #e5e5e5;
 }
-.thread-item.active {
+.thread-item-wrapper.active {
   background: #242828;
   color: #2dd4bf;
   font-weight: 500;
+}
+
+.delete-thread-btn {
+  background: transparent;
+  border: none;
+  color: #636666;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+.thread-item-wrapper:hover .delete-thread-btn {
+  opacity: 1;
+}
+.delete-thread-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
 }
 
 .thread-title {
