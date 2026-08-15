@@ -19,40 +19,40 @@
 
 ```mermaid
 graph TD
-    User([👤 User / Browser])
+    User["👤 User / Browser"]
     
-    subgraph "Frontend Layer (Port 3000)"
-        Web["🖥️ Axiom Web App<br/>(React 18 + Bun + Tailwind CSS)"]
-        Components["📦 Modular Components<br/>(Navbar, Sidebar, HeroSearch, MessageThread, FollowupBar)"]
-        Lib["📚 Lib Layer<br/>(Icons, Types, Constants, Models)"]
+    subgraph Frontend["Frontend Layer - Port 3000"]
+        Web["🖥️ Axiom Web App - React 18 + Bun + Tailwind"]
+        Components["📦 Modular Components - Navbar, Sidebar, Thread, Followup"]
+        Lib["📚 Lib Layer - Icons, Types, Constants, Models"]
         Web --> Components
         Web --> Lib
     end
 
-    subgraph "Auth Provider"
-        SupabaseAuth["🔐 Supabase Auth<br/>(Google & GitHub OAuth)"]
+    subgraph Auth["Auth Provider"]
+        SupabaseAuth["🔐 Supabase Auth - OAuth Providers"]
     end
 
-    subgraph "Backend API Layer (Port 3002)"
-        Server["⚙️ Express API Server<br/>(Bun Runtime)"]
-        AuthMiddleware["🛡️ Optional / Required Auth Middleware"]
+    subgraph Backend["Backend API Layer - Port 3002"]
+        Server["⚙️ Express API Server - Bun Runtime"]
+        AuthMiddleware["🛡️ Auth Middleware"]
         AgentRouter["🔀 Multi-Agent Stream Router"]
     end
 
-    subgraph "AI Inference & Search"
+    subgraph External["AI Inference & Search"]
         Tavily["🌐 Tavily Web Search API"]
-        Groq["⚡ Groq LPU (Llama 3.3 70B Versatile)"]
-        OpenRouter["🧠 OpenRouter (DeepSeek V3, Gemini Flash, Llama 3.3)"]
+        Groq["⚡ Groq LPU - Llama 3.3 70B"]
+        OpenRouter["🧠 OpenRouter - DeepSeek V3, Gemini Flash, Llama 3.3"]
     end
 
-    subgraph "Database Layer"
-        Prisma["💎 Prisma ORM (PostgreSQL Adapter)"]
-        Postgres[("🗄️ PostgreSQL Database<br/>(Users, Conversations, Messages)")]
+    subgraph Database["Database Layer"]
+        Prisma["💎 Prisma ORM"]
+        Postgres[("🗄️ PostgreSQL Database")]
     end
 
-    User -->|Searches & Follow-ups| Web
+    User -->|Search & Explore| Web
     Web -->|OAuth Login| SupabaseAuth
-    Web -->|Stream Request (Query + Model)| Server
+    Web -->|Stream Search Query| Server
     Server --> AuthMiddleware
     AuthMiddleware -->|Sync User Profile| Prisma
     Server -->|Fetch Live Sources| Tavily
@@ -61,7 +61,7 @@ graph TD
     AgentRouter -->|Route Request| OpenRouter
     Groq -->|Token Stream| Server
     OpenRouter -->|Token Stream| Server
-    Server -->|HTTP SSE Token Stream| Web
+    Server -->|HTTP SSE Stream| Web
     Server -->|Persist Messages| Prisma
     Prisma --> Postgres
 ```
