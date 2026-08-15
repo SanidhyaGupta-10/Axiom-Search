@@ -3,13 +3,6 @@ import type { AIModelConfig } from './types';
 // ─── Available Multi-Agent Models ───
 export const AVAILABLE_MODELS: AIModelConfig[] = [
   {
-    id: "groq-quicksilver",
-    name: "⚡ QuickSilver (8B Instant · 750 tps)",
-    provider: "groq",
-    model: "llama-3.1-8b-instant",
-    badge: "⚡",
-  },
-  {
     id: "groq-llama-70b",
     name: "Fast Groq Llama 3.3 70B",
     provider: "groq",
@@ -17,10 +10,10 @@ export const AVAILABLE_MODELS: AIModelConfig[] = [
     badge: "⚡",
   },
   {
-    id: "openrouter-deepseek-r1",
-    name: "Reasoning DeepSeek R1",
+    id: "openrouter-deepseek",
+    name: "Reasoning DeepSeek V3",
     provider: "openrouter",
-    model: "deepseek/deepseek-r1:free",
+    model: "deepseek/deepseek-chat:free",
     badge: "🧠",
   },
   {

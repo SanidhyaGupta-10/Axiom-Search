@@ -1,7 +1,7 @@
 import express from 'express';
 import { tavily } from '@tavily/core';
 import { streamAgent, type AIProvider } from './agents';
-import { SYSTEM_PROMPT, QUICKSILVER_SYSTEM_PROMPT, PROMPT_TEMPLATE, formatSearchResults } from './prompt';
+import { SYSTEM_PROMPT, PROMPT_TEMPLATE, formatSearchResults } from './prompt';
 import prisma from './lib/db';
 import { optionalAuth, requireAuth } from './middleware';
 import cors from 'cors';
@@ -113,15 +113,13 @@ app.delete('/conversations/:conversationId', requireAuth, async (req: any, res) 
 // Fresh search: streams LLM response, saves to DB if logged in
 app.post('/perplexity-ask', optionalAuth, async (req: any, res) => {
     try {
-        const { query, provider, model, mode } = req.body as { 
+        const { query, provider, model } = req.body as { 
             query?: string; 
             provider?: AIProvider; 
             model?: string;
-            mode?: 'standard' | 'quicksilver';
         };
         if (!query) return res.status(400).json({ error: 'query is required' });
 
-        const isQuickSilver = mode === 'quicksilver' || model?.includes('8b');
         const userId = req.userId;
         let conversationId: string = crypto.randomUUID();
 
@@ -140,12 +138,8 @@ app.post('/perplexity-ask', optionalAuth, async (req: any, res) => {
 
         res.setHeader('x-conversation-id', conversationId);
 
-        // Web search via Tavily (basic is ~180ms for QuickSilver, advanced is comprehensive)
-        const searchDepth = isQuickSilver ? 'basic' : 'advanced';
-        const { results: webSearchResults } = await tavilyClient.search(query, { 
-            searchDepth,
-            maxResults: isQuickSilver ? 4 : 6,
-        });
+        // Web search via Tavily
+        const { results: webSearchResults } = await tavilyClient.search(query, { searchDepth: 'advanced' });
 
         // Build prompt with indexed citations
         const prompt = PROMPT_TEMPLATE
@@ -153,14 +147,11 @@ app.post('/perplexity-ask', optionalAuth, async (req: any, res) => {
             .replace('{{USER_QUERY}}', query);
 
         // Stream AI response via requested agent (Groq or OpenRouter)
-        const activeModel = isQuickSilver ? (model || 'llama-3.1-8b-instant') : model;
-        const activeSystem = isQuickSilver ? QUICKSILVER_SYSTEM_PROMPT : SYSTEM_PROMPT;
-
         const result = streamAgent({
             provider: provider || 'groq',
-            model: activeModel,
+            model: model,
             prompt,
-            system: activeSystem,
+            system: SYSTEM_PROMPT,
         });
 
         let fullAssistantAnswer = '';
@@ -223,7 +214,7 @@ app.post('/perplexity_ask/follow_up', optionalAuth, async (req: any, res) => {
 
             if (conversation) {
                 history = [
-                    ...conversation.messages.map((m: any) => ({
+                    ...conversation.messages.map(m => ({
                         role: m.role.toLowerCase() as 'user' | 'assistant',
                         content: m.content,
                     })),

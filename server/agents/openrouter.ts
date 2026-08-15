@@ -10,8 +10,8 @@ const openrouter = createOpenRouter({
  * OpenRouter AI Agent supporting DeepSeek R1, Llama, Gemini, Claude, etc.
  */
 export function streamOpenRouterAgent(options: AgentStreamOptions) {
-    // Default to DeepSeek R1 or Llama 3.3
-    const selectedModel = options.model || 'deepseek/deepseek-r1:free';
+    // Default to DeepSeek Chat or Llama 3.3
+    const selectedModel = options.model || 'deepseek/deepseek-chat:free';
 
     if (options.messages && options.messages.length > 0) {
         return streamText({
