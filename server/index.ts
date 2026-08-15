@@ -2,7 +2,7 @@ import express from 'express';
 import { tavily } from '@tavily/core';
 import { streamAgent, type AIProvider } from './agents';
 import { SYSTEM_PROMPT, PROMPT_TEMPLATE, formatSearchResults } from './prompt';
-import prisma from './db';
+import prisma from './lib/db';
 import { optionalAuth, requireAuth } from './middleware';
 import cors from 'cors';
 
@@ -210,7 +210,7 @@ app.post('/perplexity_ask/follow_up', optionalAuth, async (req: any, res) => {
 
             if (conversation) {
                 history = [
-                    ...conversation.messages.map(m => ({
+                    ...conversation.messages.map((m: any) => ({
                         role: m.role.toLowerCase() as 'user' | 'assistant',
                         content: m.content,
                     })),

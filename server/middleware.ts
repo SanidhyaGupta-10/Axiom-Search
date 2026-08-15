@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
-import { createSupbaseClient } from "./client";
-import prisma from "./db";
+import { createSupbaseClient } from "./lib/client";
+import prisma from "./lib/db";
 
 const supabase = createSupbaseClient();
 
