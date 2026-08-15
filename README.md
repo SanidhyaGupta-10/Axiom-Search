@@ -1,133 +1,194 @@
 # 🔍 Axiom Search
+> **Alpha-Version of Perplexity AI** — An authoritative, conversational AI research engine that delivers lightning-fast, well-cited answers by combining real-time web retrieval with high-speed LLM reasoning.
 
-An AI-powered research assistant that delivers precise, well-cited answers by combining real-time web search with LLM synthesis — inspired by Perplexity AI.
+---
 
-## Overview
+## 🌟 Overview
 
-Axiom Search takes a user query, performs an advanced web search via [Tavily](https://tavily.com/), feeds the results through a carefully engineered prompt to [Groq](https://groq.com/) (Llama 3.3 70B), and streams back a structured response with inline citations and follow-up questions.
+**Axiom Search** is a full-stack AI research assistant engineered for speed, accuracy, and depth. When you submit a query, Axiom:
+1. **Searches the Web:** Executes an advanced web crawl via **Tavily** to gather authoritative sources.
+2. **Contextualizes & Cites:** Synthesizes indexed citations (`[1]`, `[2]`) through custom prompt engineering.
+3. **Streams with Groq:** Leverages **Groq's Llama 3.3 70B** on LPU hardware for instant token streaming.
+4. **Persists Conversations:** Saves search sessions and multi-turn threads into **PostgreSQL** using **Prisma ORM**.
+5. **Renders with Elegance:** Delivers a Perplexity-grade dark theme interface with live Markdown rendering, interactive source cards, and thread history.
 
-## Architecture
+---
+
+## 🏗️ System Architecture
 
 ```mermaid
-graph LR
-    A["React + Vite App"] -- "POST /perplexity-ask" --> B["Express Server (Bun)"]
-    B -- "Streamed JSON" --> A
-    B --> C["Tavily Search"]
-    B --> D["Groq LLM (Llama 3.3 70B)"]
+graph TD
+    User([👤 User / Browser])
+    
+    subgraph "Frontend Layer (Port 3000)"
+        Web["🖥️ Axiom Web App<br/>(React 18 + Bun + Tailwind CSS)"]
+    end
+
+    subgraph "Auth Provider"
+        SupabaseAuth["🔐 Supabase Auth<br/>(Google & GitHub OAuth)"]
+    end
+
+    subgraph "Backend API Layer (Port 3002)"
+        Server["⚙️ Express API Server<br/>(Bun Runtime)"]
+        AuthMiddleware["🛡️ Auth & Sync Middleware"]
+    end
+
+    subgraph "External AI & Search Services"
+        Tavily["🌐 Tavily Web Search API"]
+        Groq["⚡ Groq LPU (Llama 3.3 70B)"]
+    end
+
+    subgraph "Database Layer"
+        Prisma["💎 Prisma ORM"]
+        Postgres[("🗄️ PostgreSQL Database<br/>(Conversations & Messages)")]
+    end
+
+    User -->|Searches & Explores| Web
+    Web -->|Authenticate| SupabaseAuth
+    Web -->|JWT Stream Request| Server
+    Server --> AuthMiddleware
+    AuthMiddleware -->|Upsert User| Prisma
+    Server -->|Fetch Sources| Tavily
+    Server -->|Stream Prompt + Sources| Groq
+    Groq -->|Streamed Tokens| Server
+    Server -->|HTTP Stream| Web
+    Server -->|Persist Thread & Turns| Prisma
+    Prisma --> Postgres
 ```
 
-## Tech Stack
+---
 
-| Layer      | Technology                                     |
-| ---------- | ---------------------------------------------- |
-| **Frontend** | React 19, Vite 8, TypeScript                 |
-| **Backend**  | Express 5, Bun, TypeScript                   |
-| **AI/LLM**   | Vercel AI SDK, Groq (Llama 3.3 70B Versatile) |
-| **Search**   | Tavily API (advanced depth)                  |
-| **Validation** | Zod (structured output schema)             |
+## ⚡ Tech Stack
 
-## Project Structure
+| Layer | Technologies & Tools | Purpose |
+| :--- | :--- | :--- |
+| **Frontend** | **React 18**, **TypeScript**, **Tailwind CSS v4** | Interactive Perplexity-inspired UI with custom glassmorphism and real-time streaming |
+| **Bundler & Runtime** | **Bun** | Native high-speed JavaScript/TypeScript bundler, hot module reloading (HMR), and server runtime |
+| **Routing & UI** | **React Router v7**, **React Markdown**, **Lucide Icons** | Client-side navigation, token-by-token Markdown rendering, and vector UI icons |
+| **Backend API** | **Express 5**, **TypeScript** | High-throughput API gateway and token-streaming HTTP endpoints |
+| **AI Inference** | **Groq LPU Hardware** + **Llama 3.3 70B Versatile** | Ultra-fast token generation using Vercel AI SDK (`streamText`) |
+| **Web Search** | **Tavily Search API** | Real-time deep web crawl and search result extraction |
+| **Database & ORM** | **Prisma ORM** + **PostgreSQL** (Supabase DB) | Relational modeling, migrations, and atomic persistence for users, conversations, and messages |
+| **Authentication** | **Supabase Auth** | Multi-provider OAuth (Google & GitHub) with secure Bearer JWT verification middleware |
+
+---
+
+## 📦 Project Structure
 
 ```
 Axiom-Search/
-├── server/              # Backend API
-│   ├── index.ts         # Express server & /perplexity-ask endpoint
-│   ├── prompt.ts        # System prompt & prompt template
-│   ├── .env             # API keys (TAVILY, GROQ)
-│   └── package.json
-├── web/                 # Frontend app
+├── server/                   # Backend API (Express 5, Bun, Prisma, Groq, Tavily)
+│   ├── prisma/
+│   │   ├── migrations/       # PostgreSQL migration history
+│   │   └── schema.prisma     # DB Schema (User, Conversation, Message)
+│   ├── client.ts             # Supabase backend client
+│   ├── db.ts                 # Prisma Client with PostgreSQL adapter
+│   ├── index.ts              # Express routes & streaming endpoints
+│   ├── middleware.ts         # Token verification & DB user sync
+│   ├── prompt.ts             # System prompt & indexed citation formatting
+│   ├── prisma.config.ts      # Prisma migration configuration
+│   ├── .env                  # Server API keys & DB URLs
+│   ├── package.json
+│   └── README.md             # Detailed Server Documentation
+│
+├── web/                      # Frontend Client (React 18, Tailwind CSS, Bun)
 │   ├── src/
-│   │   ├── App.tsx      # Main React component
-│   │   ├── App.css
-│   │   ├── index.css
-│   │   └── main.tsx     # Entry point
-│   ├── index.html
-│   ├── vite.config.ts
-│   └── package.json
-└── README.md
+│   │   ├── components/       # UI Component library
+│   │   ├── lib/supabase/     # Supabase browser authentication
+│   │   ├── pages/
+│   │   │   ├── Home.tsx      # Main search interface & chat thread view
+│   │   │   └── Auth.tsx      # Google / GitHub sign-in page
+│   │   ├── App.tsx           # React routes
+│   │   ├── config.ts         # Backend API URL config
+│   │   ├── frontend.tsx      # React root DOM mount
+│   │   ├── index.css         # Axiom Perplexity dark theme stylesheet
+│   │   ├── index.html        # HTML5 template
+│   │   └── index.ts          # Bun dev server with HMR
+│   ├── styles/globals.css    # Tailwind CSS theme variables
+│   ├── .env                  # Supabase public keys
+│   ├── package.json
+│   └── README.md             # Detailed Frontend Documentation
+│
+└── README.md                 # Root Documentation
 ```
 
-## Getting Started
+---
+
+## ⚡ Quickstart Guide
 
 ### Prerequisites
-
-- [Bun](https://bun.sh/) (runtime & package manager)
+- [Bun](https://bun.sh/) (`v1.2+`)
 - [Tavily API Key](https://tavily.com/)
 - [Groq API Key](https://console.groq.com/)
+- [Supabase Project](https://supabase.com/) (PostgreSQL & OAuth)
 
-### 1. Clone the repository
+---
 
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/Axiom-Search.git
+git clone https://github.com/SanidhyaGupta-10/Axiom-Search.git
 cd Axiom-Search
 ```
 
-### 2. Set up the server
+---
 
+### 2. Configure & Run Backend Server
 ```bash
 cd server
 bun install
 ```
 
-Create a `.env` file in `server/`:
-
+Create `server/.env`:
 ```env
-TAVILY_API_KEY=your_tavily_api_key
-GROQ_API_KEY=your_groq_api_key
+TAVILY_API_KEY=tvly-your_key
+GROQ_API_KEY=gsk_your_key
+DATABASE_URL="postgresql://postgres.xxx:password@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres:password@db.xxx.supabase.co:5432/postgres"
+SUPABSE_API_SECRET=sb_publishable_your_key
 ```
 
-### 3. Set up the frontend
-
+Run database migrations & start server:
 ```bash
-cd web
-bun install
-```
-
-### 4. Run the app
-
-Start the backend:
-
-```bash
-cd server
+bunx prisma migrate dev
 bun run index.ts
 ```
+> Server running at: **`http://localhost:3002`**
 
-Start the frontend (in a separate terminal):
+---
 
+### 3. Configure & Run Web Client
+Open a second terminal window:
 ```bash
 cd web
+bun install
+```
+
+Create `web/.env`:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
+```
+
+Start the frontend:
+```bash
 bun run dev
 ```
+> Web client running at: **`http://localhost:3000`**
 
-The server runs on `http://localhost:3000` and the frontend on `http://localhost:5173`.
+---
 
-## API
+## 🎯 Key Features
 
-### `POST /perplexity-ask`
+- **🌐 Live Web Search:** Deep web crawling via Tavily for fresh, real-time data.
+- **⚡ Blazing Fast Generation:** Powered by Groq LPUs running Llama 3.3 70B Versatile.
+- **📑 Inline Citations:** Clear numerical references `[1]`, `[2]` mapped to interactive source cards.
+- **💬 Multi-Turn Threads:** Ask continuous follow-up questions with full contextual awareness.
+- **📚 Persistent History:** All searches automatically saved and accessible from the sidebar.
+- **🔒 Secure OAuth:** One-click Google and GitHub login via Supabase Auth.
+- **🎨 Perplexity Aesthetics:** Crafted dark mode interface with glassmorphism, responsive layouts, and micro-animations.
 
-Send a research query and receive a streamed, cited answer.
+---
 
-**Request:**
+## 📄 License
 
-```json
-{
-  "query": "What are the performance benchmarks of Bun vs Node.js?"
-}
-```
-
-**Response** (streamed JSON):
-
-```json
-{
-  "answer": "Markdown-formatted answer with [1], [2] inline citations...",
-  "followUps": [
-    "How does Bun handle TypeScript compilation compared to ts-node?",
-    "What are the memory usage differences between Bun and Node.js?",
-    "Which frameworks have native Bun support?"
-  ]
-}
-```
-
-## License
-
-MIT
+Distributed under the MIT License.
