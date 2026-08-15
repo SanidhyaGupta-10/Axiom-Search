@@ -83,12 +83,21 @@ const SUGGESTIONS = [
   "Compare Bun vs Node.js vs Deno in 2026",
 ]
 
+// ─── Available AI Models ───
+const AVAILABLE_MODELS = [
+  { id: "groq/llama-3.3-70b", name: "Groq Llama 3.3 70B", provider: "groq", model: "llama-3.3-70b-versatile", badge: "⚡ Fast" },
+  { id: "openrouter/deepseek-r1", name: "DeepSeek R1", provider: "openrouter", model: "deepseek/deepseek-r1:free", badge: "🧠 Reasoning" },
+  { id: "openrouter/gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "openrouter", model: "google/gemini-2.0-flash-exp:free", badge: "✨ Smart" },
+  { id: "openrouter/llama-3.3", name: "Llama 3.3 Free", provider: "openrouter", model: "meta-llama/llama-3.3-70b-instruct:free", badge: "🦙 Open" },
+] as const
+
 export default function Home() {
   const navigate = useNavigate()
   const [user, setUser] = useState<User | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [conversations, setConversations] = useState<ConversationItem[]>([])
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [selectedModelId, setSelectedModelId] = useState<string>("groq/llama-3.3-70b")
 
   // Current chat state
   const [messages, setMessages] = useState<Message[]>([])
@@ -97,6 +106,8 @@ export default function Home() {
   const [searchStatus, setSearchStatus] = useState<string>("")
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<"answer" | "sources">("answer")
+
+  const currentModelConfig = AVAILABLE_MODELS.find(m => m.id === selectedModelId) || AVAILABLE_MODELS[0]
 
   const answerScrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -181,7 +192,7 @@ export default function Home() {
 
     setQuery("")
     setIsSearching(true)
-    setSearchStatus("Searching the web...")
+    setSearchStatus(`Searching the web via ${currentModelConfig.name}...`)
 
     // Add user message to state
     const newMessages: Message[] = [
@@ -194,15 +205,24 @@ export default function Home() {
     try {
       const token = await getToken()
       let streamUrl = `${BACKEND_URL}/perplexity-ask`
-      let bodyData: any = { query: q }
+      let bodyData: any = {
+        query: q,
+        provider: currentModelConfig.provider,
+        model: currentModelConfig.model
+      }
 
       // If follow-up in existing conversation
       if (currentConversationId) {
         streamUrl = `${BACKEND_URL}/perplexity_ask/follow_up`
-        bodyData = { conversationId: currentConversationId, query: q }
+        bodyData = {
+          conversationId: currentConversationId,
+          query: q,
+          provider: currentModelConfig.provider,
+          model: currentModelConfig.model
+        }
       }
 
-      setSearchStatus("Reading sources & synthesizing answer...")
+      setSearchStatus(`Synthesizing answer with ${currentModelConfig.name}...`)
 
       const response = await fetch(streamUrl, {
         method: "POST",
@@ -474,10 +494,27 @@ export default function Home() {
                   autoFocus
                 />
                 <div className="hero-box-footer">
-                  <div className="box-focus-badge">
-                    <GlobeIcon />
-                    <span>Web Search</span>
+                  <div className="box-footer-left">
+                    <div className="box-focus-badge">
+                      <GlobeIcon />
+                      <span>Web Search</span>
+                    </div>
+
+                    <div className="model-selector-pill">
+                      <select
+                        className="model-select-input"
+                        value={selectedModelId}
+                        onChange={e => setSelectedModelId(e.target.value)}
+                      >
+                        {AVAILABLE_MODELS.map(m => (
+                          <option key={m.id} value={m.id}>
+                            {m.badge} {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
+
                   <button
                     className="hero-submit-btn"
                     disabled={!query.trim() || isSearching}
@@ -603,13 +640,29 @@ export default function Home() {
                   }
                 }}
               />
-              <button
-                className="followup-submit-btn"
-                disabled={!query.trim() || isSearching}
-                onClick={() => handleSearch()}
-              >
-                <ArrowUpIcon />
-              </button>
+              <div className="followup-actions-right">
+                <div className="model-selector-pill mini">
+                  <select
+                    className="model-select-input"
+                    value={selectedModelId}
+                    onChange={e => setSelectedModelId(e.target.value)}
+                  >
+                    {AVAILABLE_MODELS.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.badge} {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  className="followup-submit-btn"
+                  disabled={!query.trim() || isSearching}
+                  onClick={() => handleSearch()}
+                >
+                  <ArrowUpIcon />
+                </button>
+              </div>
             </div>
           </div>
         )}

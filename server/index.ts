@@ -1,7 +1,6 @@
 import express from 'express';
 import { tavily } from '@tavily/core';
-import { streamText } from 'ai';
-import { groq } from '@ai-sdk/groq';
+import { streamAgent, type AIProvider } from './agents';
 import { SYSTEM_PROMPT, PROMPT_TEMPLATE, formatSearchResults } from './prompt';
 import prisma from './db';
 import { middleware } from './middleware';
@@ -16,6 +15,7 @@ app.use(cors({
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['x-conversation-id'],
 }));
 
 // ──────────── Conversations ────────────
@@ -113,7 +113,7 @@ app.delete('/conversations/:conversationId', middleware, async (req: any, res) =
 // Fresh search + LLM stream + save conversation & messages
 app.post('/perplexity-ask', middleware, async (req: any, res) => {
     try {
-        const query = req.body.query;
+        const { query, provider, model } = req.body as { query?: string; provider?: AIProvider; model?: string };
         if (!query) return res.status(400).json({ error: 'query is required' });
 
         const userId = req.userId;
@@ -138,9 +138,10 @@ app.post('/perplexity-ask', middleware, async (req: any, res) => {
             .replace('{{WEB_SEARCH_RESULTS}}', formatSearchResults(webSearchResults))
             .replace('{{USER_QUERY}}', query);
 
-        // Stream LLM response
-        const result = streamText({
-            model: groq('llama-3.3-70b-versatile'),
+        // Stream AI response via requested agent (Groq or OpenRouter)
+        const result = streamAgent({
+            provider: provider || 'groq',
+            model: model,
             prompt,
             system: SYSTEM_PROMPT,
         });
@@ -184,7 +185,12 @@ app.post('/perplexity-ask', middleware, async (req: any, res) => {
 // Follow-up: load history, stream response, save both messages after
 app.post('/perplexity_ask/follow_up', middleware, async (req: any, res) => {
     try {
-        const { conversationId, query } = req.body;
+        const { conversationId, query, provider, model } = req.body as {
+            conversationId?: string;
+            query?: string;
+            provider?: AIProvider;
+            model?: string;
+        };
         if (!conversationId || !query) {
             return res.status(400).json({ error: 'conversationId and query required' });
         }
@@ -204,8 +210,9 @@ app.post('/perplexity_ask/follow_up', middleware, async (req: any, res) => {
             { role: 'user' as const, content: query },
         ];
 
-        const result = streamText({
-            model: groq('llama-3.3-70b-versatile'),
+        const result = streamAgent({
+            provider: provider || 'groq',
+            model: model,
             system: SYSTEM_PROMPT,
             messages: history,
         });
