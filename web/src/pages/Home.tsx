@@ -48,29 +48,33 @@ export function Home() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // 2. Fetch User Conversations
+  // 2. Fetch Conversations (Cloud + LocalStorage Hybrid)
   const fetchConversations = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
-
-      const res = await axios.get(`${BACKEND_URL}/conversations`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (res.data && Array.isArray(res.data)) {
-        setConversations(res.data)
+      if (session?.access_token) {
+        const res = await axios.get(`${BACKEND_URL}/conversations`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        const list = res.data?.conversations || (Array.isArray(res.data) ? res.data : [])
+        setConversations(list)
+        return
       }
     } catch (err) {
-      console.error("Failed to load conversations:", err)
+      console.error("Failed to load cloud conversations:", err)
     }
+
+    // Guest fallback from localStorage
+    try {
+      const saved = localStorage.getItem("axiom_guest_conversations")
+      if (saved) {
+        setConversations(JSON.parse(saved))
+      }
+    } catch {}
   }
 
   useEffect(() => {
-    if (user) {
-      fetchConversations()
-    } else {
-      setConversations([])
-    }
+    fetchConversations()
   }, [user])
 
   // 3. Auto Scroll on streaming
@@ -112,6 +116,7 @@ export function Home() {
             query: searchQuery,
             provider: modelConfig.provider,
             model: modelConfig.model,
+            clientHistory: messages.map(m => ({ role: m.role, content: m.content })),
           }
         : {
             query: searchQuery,
@@ -131,8 +136,25 @@ export function Home() {
 
       // Read custom header for conversation ID
       const headerConvId = response.headers.get("x-conversation-id")
+      let activeConversationId = currentConversationId
+
       if (headerConvId && !currentConversationId) {
+        activeConversationId = headerConvId
         setCurrentConversationId(headerConvId)
+
+        // Optimistically add to sidebar immediately!
+        const newThreadItem: ConversationItem = {
+          id: headerConvId,
+          title: searchQuery.length > 50 ? searchQuery.slice(0, 47) + "..." : searchQuery,
+        }
+        setConversations(prev => {
+          const exists = prev.some(c => c.id === headerConvId)
+          const updated = exists ? prev : [newThreadItem, ...prev]
+          if (!session?.user) {
+            localStorage.setItem("axiom_guest_conversations", JSON.stringify(updated))
+          }
+          return updated
+        })
       }
 
       setSearchStatus("Synthesizing answers with " + modelConfig.name + "...")
@@ -162,6 +184,7 @@ export function Home() {
                 const parsed = JSON.parse(metaJson)
                 if (parsed.sources) parsedSources = parsed.sources
                 if (parsed.conversationId && !currentConversationId) {
+                  activeConversationId = parsed.conversationId
                   setCurrentConversationId(parsed.conversationId)
                 }
               }
@@ -169,10 +192,19 @@ export function Home() {
               // Incomplete chunk JSON, wait for next stream packet
             }
 
-            setMessages([
+            const updatedMessages: Message[] = [
               ...nextMessages,
               { role: "assistant", content: textContent, sources: parsedSources },
-            ])
+            ]
+            setMessages(updatedMessages)
+
+            // Save to localStorage for guests
+            if (!session?.user && activeConversationId) {
+              localStorage.setItem(
+                `axiom_guest_messages_${activeConversationId}`,
+                JSON.stringify(updatedMessages)
+              )
+            }
           } else {
             setMessages([
               ...nextMessages,
@@ -182,7 +214,7 @@ export function Home() {
         }
       }
 
-      if (user) fetchConversations()
+      if (session?.user) fetchConversations()
     } catch (err) {
       console.error("Search streaming error:", err)
       setMessages([
@@ -203,24 +235,35 @@ export function Home() {
   const handleSelectConversation = async (conversationId: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
+      if (session?.access_token) {
+        const res = await axios.get(`${BACKEND_URL}/conversations/${conversationId}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
 
-      const res = await axios.get(`${BACKEND_URL}/conversations/${conversationId}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-
-      if (res.data && res.data.messages) {
-        const loadedMsgs: Message[] = res.data.messages.map((m: any) => ({
-          role: m.role.toLowerCase() === "user" ? "user" : "assistant",
-          content: m.content,
-          sources: m.sources ? JSON.parse(m.sources) : [],
-        }))
-        setMessages(loadedMsgs)
-        setCurrentConversationId(conversationId)
+        const conv = res.data?.conversation || res.data
+        if (conv && conv.messages) {
+          const loadedMsgs: Message[] = conv.messages.map((m: any) => ({
+            role: m.role.toLowerCase() === "user" ? "user" : "assistant",
+            content: m.content,
+            sources: m.sources ? (typeof m.sources === "string" ? JSON.parse(m.sources) : m.sources) : [],
+          }))
+          setMessages(loadedMsgs)
+          setCurrentConversationId(conversationId)
+          return
+        }
       }
     } catch (err) {
-      console.error("Failed to load thread:", err)
+      console.error("Failed to load thread from server:", err)
     }
+
+    // Guest fallback from localStorage
+    try {
+      const stored = localStorage.getItem(`axiom_guest_messages_${conversationId}`)
+      if (stored) {
+        setMessages(JSON.parse(stored))
+        setCurrentConversationId(conversationId)
+      }
+    } catch {}
   }
 
   // 6. Delete Conversation
@@ -228,18 +271,26 @@ export function Home() {
     e.stopPropagation()
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
-
-      await axios.delete(`${BACKEND_URL}/conversations/${conversationId}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-
-      setConversations(prev => prev.filter(c => c.id !== conversationId))
-      if (currentConversationId === conversationId) {
-        handleNewSearch()
+      if (session?.access_token) {
+        await axios.delete(`${BACKEND_URL}/conversations/${conversationId}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
       }
     } catch (err) {
-      console.error("Failed to delete conversation:", err)
+      console.error("Failed to delete conversation on server:", err)
+    }
+
+    setConversations(prev => {
+      const updated = prev.filter(c => c.id !== conversationId)
+      if (!user) {
+        localStorage.setItem("axiom_guest_conversations", JSON.stringify(updated))
+        localStorage.removeItem(`axiom_guest_messages_${conversationId}`)
+      }
+      return updated
+    })
+
+    if (currentConversationId === conversationId) {
+      handleNewSearch()
     }
   }
 
@@ -259,6 +310,7 @@ export function Home() {
     await supabase.auth.signOut()
     setUser(null)
     setConversations([])
+    localStorage.removeItem("axiom_guest_conversations")
     handleNewSearch()
   }
 
