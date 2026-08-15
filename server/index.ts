@@ -5,19 +5,25 @@ import { groq } from '@ai-sdk/groq';
 import { SYSTEM_PROMPT, PROMPT_TEMPLATE } from './prompt';
 import prisma from './db';
 import { middleware } from './middleware';
+import cors from 'cors';
 
 const app = express();
 const client = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 app.use(express.json());
 
-app.get('/conversations', middleware ,async () => {
-    // get the user
-    // 
-});
+app.use(cors({
+    origin: "*",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}))
 
-app.post('/conversations', middleware, async () => {
-    // create new conversation for the user
+app.get('/conversations', middleware, async (req: any, res) => {
+    console.log("User ID:", req.userId);
+    return res.json({
+        userId: req.userId
+    });
 });
 
 app.get('/conversations/:conversationId', middleware, async () => {
