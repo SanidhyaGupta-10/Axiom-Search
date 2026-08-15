@@ -1,24 +1,57 @@
 import type { NextFunction, Request, Response } from "express";
 import { createSupbaseClient } from "./client";
+import prisma from "./db";
 
-const client = createSupbaseClient();
+const supabase = createSupbaseClient();
 
 export async function middleware(req: Request, res: Response, next: NextFunction) {
+
+    // Step 1: Get the token from the request header
+    // Frontend sends: { Authorization: "Bearer eyJhbGciOi..." }
+    // We need to remove "Bearer " to get just the token
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        return res.status(403).json({ message: "No token provided" });
+    const token = authHeader?.replace(/^Bearer\s+/i, "");
+
+    // Step 2: Ask Supabase "who is this user?" using the token
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+        return res.status(403).json({ message: "Incorrect inputs" });
     }
 
-    // Extract token (remove "Bearer " if included)
-    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const user = data.user;
 
-    const { data, error } = await client.auth.getUser(token);
+    // Step 3: Check if this user already exists in OUR database (Prisma)
+    // Why? Because Supabase has its own users table, but we need one too
+    // for storing conversations, messages, etc.
+    let dbUser = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { supabaseId: user.id },
+                { email: user.email! }
+            ]
+        }
+    });
 
-    if (error || !data?.user) {
-        return res.status(403).json({ message: "Invalid or expired token" });
+    // Step 4: If user doesn't exist in our DB yet, create them
+    if (!dbUser) {
+        const provider = user.app_metadata?.provider === "github" ? "GITHUB" : "GOOGLE";
+
+        dbUser = await prisma.user.create({
+            data: {
+                email: user.email!,
+                supabaseId: user.id,
+                name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+                provider: provider
+            }
+        });
     }
 
-    // Attach userId directly to req
-    (req as any).userId = data.user.id;
+    // Step 5: Attach the user's DB id to the request so route handlers can use it
+    (req as any).userId = dbUser.id;
     next();
 }
+
+
+
+
