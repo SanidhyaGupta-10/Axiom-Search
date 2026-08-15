@@ -1,16 +1,17 @@
 # 🔍 Axiom Search
-> **Alpha-Version of Perplexity AI** — An authoritative, conversational AI research engine that delivers lightning-fast, well-cited answers by combining real-time web retrieval with high-speed LLM reasoning.
+> **Next-Generation Conversational AI Research Engine** — Delivers real-time, well-cited answers by combining live web retrieval with a multi-agent AI framework (Groq LPU + OpenRouter), wrapped in an obsidian glassmorphic interface.
 
 ---
 
 ## 🌟 Overview
 
-**Axiom Search** is a full-stack AI research assistant engineered for speed, accuracy, and depth. When you submit a query, Axiom:
-1. **Searches the Web:** Executes an advanced web crawl via **Tavily** to gather authoritative sources.
-2. **Contextualizes & Cites:** Synthesizes indexed citations (`[1]`, `[2]`) through custom prompt engineering.
-3. **Streams with Groq:** Leverages **Groq's Llama 3.3 70B** on LPU hardware for instant token streaming.
-4. **Persists Conversations:** Saves search sessions and multi-turn threads into **PostgreSQL** using **Prisma ORM**.
-5. **Renders with Elegance:** Delivers a Perplexity-grade dark theme interface with live Markdown rendering, interactive source cards, and thread history.
+**Axiom Search** is an open-source, full-stack AI search and research assistant built for speed, depth, and precision. When you submit a query, Axiom:
+1. **Performs Deep Web Retrieval:** Executes real-time web searches via **Tavily** to collect authoritative, structured sources.
+2. **Multi-Agent Reasoning:** Routes the synthesized context through your choice of multi-agent LLMs across **Groq** (LPU inference) and **OpenRouter** (DeepSeek V3, Gemini 2.0 Flash, Llama 3.3).
+3. **Contextual Inline Citations:** Injects numerical citations (`[1]`, `[2]`) mapped directly to interactive source carousel cards with automatic domain extraction and preview favicons.
+4. **Multi-Turn Contextual Follow-ups:** Maintains full conversational context across follow-up queries with persistent history.
+5. **Hybrid Persistence:** Provides instant guest mode with `localStorage` fallback alongside authenticated **PostgreSQL + Prisma ORM** cloud synchronization.
+6. **Obsidian Glassmorphism:** Features a custom dark aesthetic with dynamic atmospheric lighting, titanium accents, and the embossed Dragon Axiom medallion.
 
 ---
 
@@ -22,6 +23,10 @@ graph TD
     
     subgraph "Frontend Layer (Port 3000)"
         Web["🖥️ Axiom Web App<br/>(React 18 + Bun + Tailwind CSS)"]
+        Components["📦 Modular Components<br/>(Navbar, Sidebar, HeroSearch, MessageThread, FollowupBar)"]
+        Lib["📚 Lib Layer<br/>(Icons, Types, Constants, Models)"]
+        Web --> Components
+        Web --> Lib
     end
 
     subgraph "Auth Provider"
@@ -30,29 +35,34 @@ graph TD
 
     subgraph "Backend API Layer (Port 3002)"
         Server["⚙️ Express API Server<br/>(Bun Runtime)"]
-        AuthMiddleware["🛡️ Auth & Sync Middleware"]
+        AuthMiddleware["🛡️ Optional / Required Auth Middleware"]
+        AgentRouter["🔀 Multi-Agent Stream Router"]
     end
 
-    subgraph "External AI & Search Services"
+    subgraph "AI Inference & Search"
         Tavily["🌐 Tavily Web Search API"]
-        Groq["⚡ Groq LPU (Llama 3.3 70B)"]
+        Groq["⚡ Groq LPU (Llama 3.3 70B Versatile)"]
+        OpenRouter["🧠 OpenRouter (DeepSeek V3, Gemini Flash, Llama 3.3)"]
     end
 
     subgraph "Database Layer"
-        Prisma["💎 Prisma ORM"]
-        Postgres[("🗄️ PostgreSQL Database<br/>(Conversations & Messages)")]
+        Prisma["💎 Prisma ORM (PostgreSQL Adapter)"]
+        Postgres[("🗄️ PostgreSQL Database<br/>(Users, Conversations, Messages)")]
     end
 
-    User -->|Searches & Explores| Web
-    Web -->|Authenticate| SupabaseAuth
-    Web -->|JWT Stream Request| Server
+    User -->|Searches & Follow-ups| Web
+    Web -->|OAuth Login| SupabaseAuth
+    Web -->|Stream Request (Query + Model)| Server
     Server --> AuthMiddleware
-    AuthMiddleware -->|Upsert User| Prisma
-    Server -->|Fetch Sources| Tavily
-    Server -->|Stream Prompt + Sources| Groq
-    Groq -->|Streamed Tokens| Server
-    Server -->|HTTP Stream| Web
-    Server -->|Persist Thread & Turns| Prisma
+    AuthMiddleware -->|Sync User Profile| Prisma
+    Server -->|Fetch Live Sources| Tavily
+    Server --> AgentRouter
+    AgentRouter -->|Route Request| Groq
+    AgentRouter -->|Route Request| OpenRouter
+    Groq -->|Token Stream| Server
+    OpenRouter -->|Token Stream| Server
+    Server -->|HTTP SSE Token Stream| Web
+    Server -->|Persist Messages| Prisma
     Prisma --> Postgres
 ```
 
@@ -62,54 +72,76 @@ graph TD
 
 | Layer | Technologies & Tools | Purpose |
 | :--- | :--- | :--- |
-| **Frontend** | **React 18**, **TypeScript**, **Tailwind CSS v4** | Interactive Perplexity-inspired UI with custom glassmorphism and real-time streaming |
-| **Bundler & Runtime** | **Bun** | Native high-speed JavaScript/TypeScript bundler, hot module reloading (HMR), and server runtime |
-| **Routing & UI** | **React Router v7**, **React Markdown**, **Lucide Icons** | Client-side navigation, token-by-token Markdown rendering, and vector UI icons |
-| **Backend API** | **Express 5**, **TypeScript** | High-throughput API gateway and token-streaming HTTP endpoints |
-| **AI Inference** | **Groq LPU Hardware** + **Llama 3.3 70B Versatile** | Ultra-fast token generation using Vercel AI SDK (`streamText`) |
-| **Web Search** | **Tavily Search API** | Real-time deep web crawl and search result extraction |
-| **Database & ORM** | **Prisma ORM** + **PostgreSQL** (Supabase DB) | Relational modeling, migrations, and atomic persistence for users, conversations, and messages |
-| **Authentication** | **Supabase Auth** | Multi-provider OAuth (Google & GitHub) with secure Bearer JWT verification middleware |
+| **Frontend** | **React 18**, **TypeScript**, **Tailwind CSS v4** | Modular glassmorphism UI with real-time token streaming and reactive layout |
+| **Bundler & Runtime** | **Bun (v1.2+)** | Native high-speed TypeScript bundler, HMR dev server, and package manager |
+| **Icons & Media** | **Custom Dragon Medallion SVG**, **Lucide Icons** | Bespoke vector branding and UI iconography |
+| **Backend API** | **Express 5**, **TypeScript**, **Bun** | Token-streaming API endpoints with robust error recovery and SSE headers |
+| **Multi-Agent AI** | **Groq LPU Hardware** + **OpenRouter API** | Multi-model routing (Llama 3.3 70B, DeepSeek V3, Gemini 2.0 Flash) via Vercel AI SDK |
+| **Live Web Crawl** | **Tavily Search API** | Real-time web retrieval, content scraping, and domain extraction |
+| **Database & ORM** | **Prisma ORM** + **PostgreSQL** (Supabase DB) | Schema modeling, connection pooling, and atomic persistence |
+| **Authentication** | **Supabase Auth** | Multi-provider OAuth with secure Bearer JWT verification and guest search support |
 
 ---
 
-## 📦 Project Structure
+## 🤖 Available AI Models
+
+Axiom features a multi-agent model selector allowing you to switch inference providers on the fly:
+
+| Model | Provider | Badge | Ideal For |
+| :--- | :--- | :---: | :--- |
+| **Fast Groq Llama 3.3 70B** | Groq (LPU) | ⚡ | Ultra-fast token throughput & deep synthesis |
+| **Reasoning DeepSeek V3** | OpenRouter | 🧠 | In-depth logical analysis & complex problem solving |
+| **Smart Gemini 2.0 Flash** | OpenRouter | ✨ | Multimodal capabilities & structured summaries |
+| **Open Llama 3.3 Free** | OpenRouter | 🦙 | Reliable open-source instruction following |
+
+---
+
+## 📁 Repository Structure
 
 ```
 Axiom-Search/
-├── server/                   # Backend API (Express 5, Bun, Prisma, Groq, Tavily)
+├── server/                     # Backend API (Express 5, Bun, Prisma, AI Agents)
+│   ├── agents/                 # Multi-agent streaming drivers
+│   │   ├── groq.ts             # Groq SDK provider
+│   │   ├── openrouter.ts       # OpenRouter AI SDK provider
+│   │   └── index.ts            # Agent stream dispatcher
+│   ├── lib/
+│   │   ├── client.ts           # Supabase backend client
+│   │   └── db.ts               # Prisma PostgreSQL adapter client
 │   ├── prisma/
-│   │   ├── migrations/       # PostgreSQL migration history
-│   │   └── schema.prisma     # DB Schema (User, Conversation, Message)
-│   ├── client.ts             # Supabase backend client
-│   ├── db.ts                 # Prisma Client with PostgreSQL adapter
-│   ├── index.ts              # Express routes & streaming endpoints
-│   ├── middleware.ts         # Token verification & DB user sync
-│   ├── prompt.ts             # System prompt & indexed citation formatting
-│   ├── prisma.config.ts      # Prisma migration configuration
-│   ├── .env                  # Server API keys & DB URLs
-│   ├── package.json
-│   └── README.md             # Detailed Server Documentation
+│   │   ├── migrations/         # Migration history
+│   │   └── schema.prisma       # Database models (User, Conversation, Message)
+│   ├── index.ts                # Express streaming & conversation routes
+│   ├── middleware.ts           # Optional & required JWT auth middleware
+│   ├── prompt.ts               # System prompt & indexed citation formatter
+│   ├── .env                    # Backend API keys & database credentials
+│   └── package.json
 │
-├── web/                      # Frontend Client (React 18, Tailwind CSS, Bun)
+├── web/                        # Frontend Application (React 18, Bun, Tailwind CSS)
 │   ├── src/
-│   │   ├── components/       # UI Component library
-│   │   ├── lib/supabase/     # Supabase browser authentication
+│   │   ├── components/         # Modular React UI components
+│   │   │   ├── Navbar.tsx      # Top frosted glassbar & share button
+│   │   │   ├── Sidebar.tsx     # Collapsible history sidebar with auth controls
+│   │   │   ├── HeroSearch.tsx  # Landing search hero with model selector
+│   │   │   ├── MessageThread.tsx # Streaming thread, sources carousel & markdown
+│   │   │   └── FollowupBar.tsx # Pinned bottom follow-up input
+│   │   ├── lib/
+│   │   │   ├── supabase/       # Supabase browser auth client
+│   │   │   ├── constants.ts    # Model definitions & suggestions
+│   │   │   ├── icons.tsx       # Dragon Axiom Emblem & vector icons
+│   │   │   └── types.ts        # TypeScript interfaces & types
 │   │   ├── pages/
-│   │   │   ├── Home.tsx      # Main search interface & chat thread view
-│   │   │   └── Auth.tsx      # Google / GitHub sign-in page
-│   │   ├── App.tsx           # React routes
-│   │   ├── config.ts         # Backend API URL config
-│   │   ├── frontend.tsx      # React root DOM mount
-│   │   ├── index.css         # Axiom Perplexity dark theme stylesheet
-│   │   ├── index.html        # HTML5 template
-│   │   └── index.ts          # Bun dev server with HMR
-│   ├── styles/globals.css    # Tailwind CSS theme variables
-│   ├── .env                  # Supabase public keys
-│   ├── package.json
-│   └── README.md             # Detailed Frontend Documentation
+│   │   │   ├── Home.tsx        # Main search & multi-turn orchestrator
+│   │   │   └── Auth.tsx        # Supabase OAuth sign-in page
+│   │   ├── App.tsx             # React Router configuration
+│   │   ├── config.ts           # Backend URL configuration
+│   │   ├── index.css           # Glassmorphism & dynamic lighting stylesheets
+│   │   └── logo.svg            # Standalone Dragon Axiom vector badge
+│   ├── build.ts                # Production asset bundler
+│   ├── .env                    # Supabase public credentials
+│   └── package.json
 │
-└── README.md                 # Root Documentation
+└── README.md                   # Project Documentation
 ```
 
 ---
@@ -120,6 +152,7 @@ Axiom-Search/
 - [Bun](https://bun.sh/) (`v1.2+`)
 - [Tavily API Key](https://tavily.com/)
 - [Groq API Key](https://console.groq.com/)
+- [OpenRouter API Key](https://openrouter.ai/)
 - [Supabase Project](https://supabase.com/) (PostgreSQL & OAuth)
 
 ---
@@ -132,7 +165,8 @@ cd Axiom-Search
 
 ---
 
-### 2. Configure & Run Backend Server
+### 2. Configure & Start Backend Server
+
 ```bash
 cd server
 bun install
@@ -140,24 +174,31 @@ bun install
 
 Create `server/.env`:
 ```env
-TAVILY_API_KEY=tvly-your_key
-GROQ_API_KEY=gsk_your_key
-DATABASE_URL="postgresql://postgres.xxx:password@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres:password@db.xxx.supabase.co:5432/postgres"
-SUPABSE_API_SECRET=sb_publishable_your_key
+# AI Providers & Search
+GROQ_API_KEY="your_groq_key"
+OPENROUTER_API_KEY="your_openrouter_key"
+TAVILY_API_KEY="your_tavily_key"
+
+# Database & Supabase
+DATABASE_URL="your_db_url"
+SUPABASE_ANON_KEY="your_anon_key"
+SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"
+
+PORT=3002
 ```
 
-Run database migrations & start server:
+Generate Prisma client and launch:
 ```bash
-bunx prisma migrate dev
-bun run index.ts
+bunx prisma generate
+bun run --watch index.ts
 ```
 > Server running at: **`http://localhost:3002`**
 
 ---
 
-### 3. Configure & Run Web Client
-Open a second terminal window:
+### 3. Configure & Start Web Client
+
+Open a second terminal:
 ```bash
 cd web
 bun install
@@ -165,8 +206,8 @@ bun install
 
 Create `web/.env`:
 ```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
+VITE_SUPABASE_URL="your_supabase_url"
+VITE_SUPABASE_ANON_KEY="your_anon_key"
 ```
 
 Start the frontend:
@@ -179,13 +220,13 @@ bun run dev
 
 ## 🎯 Key Features
 
-- **🌐 Live Web Search:** Deep web crawling via Tavily for fresh, real-time data.
-- **⚡ Blazing Fast Generation:** Powered by Groq LPUs running Llama 3.3 70B Versatile.
-- **📑 Inline Citations:** Clear numerical references `[1]`, `[2]` mapped to interactive source cards.
-- **💬 Multi-Turn Threads:** Ask continuous follow-up questions with full contextual awareness.
-- **📚 Persistent History:** All searches automatically saved and accessible from the sidebar.
-- **🔒 Secure OAuth:** One-click Google and GitHub login via Supabase Auth.
-- **🎨 Perplexity Aesthetics:** Crafted dark mode interface with glassmorphism, responsive layouts, and micro-animations.
+- **🌐 Real-Time Web Search:** Live web crawler via Tavily delivering fresh, relevant results.
+- **⚡ Multi-Agent Intelligence:** Seamlessly switch between Groq (70B) and OpenRouter (DeepSeek V3, Gemini Flash, Llama 3.3).
+- **📑 Inline Citation Mapping:** Every statement references indexed numbers `[1]`, `[2]` linked to source cards.
+- **💬 Multi-Turn Follow-Ups:** Seamless conversational memory allowing endless follow-up exploration.
+- **📚 Persistent History:** Searches immediately appear under **Recent Searches** in the collapsible sidebar.
+- **🔒 Guest & Authenticated Modes:** Instant exploration without login (via `localStorage`), plus cloud sync with Google/GitHub OAuth via Supabase.
+- **🎨 Obsidian Glassmorphism:** Crafted dark theme with dynamic atmospheric background lighting, titanium badges, and dragon vector emblem.
 
 ---
 
