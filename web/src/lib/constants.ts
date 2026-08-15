@@ -3,6 +3,13 @@ import type { AIModelConfig } from './types';
 // ─── Available Multi-Agent Models ───
 export const AVAILABLE_MODELS: AIModelConfig[] = [
   {
+    id: "groq-quicksilver",
+    name: "⚡ QuickSilver (8B Instant · 750 tps)",
+    provider: "groq",
+    model: "llama-3.1-8b-instant",
+    badge: "⚡",
+  },
+  {
     id: "groq-llama-70b",
     name: "Fast Groq Llama 3.3 70B",
     provider: "groq",

@@ -116,12 +116,14 @@ export function Home() {
             query: searchQuery,
             provider: modelConfig.provider,
             model: modelConfig.model,
+            mode: modelConfig.id.includes('quicksilver') ? 'quicksilver' : 'standard',
             clientHistory: messages.map(m => ({ role: m.role, content: m.content })),
           }
         : {
             query: searchQuery,
             provider: modelConfig.provider,
             model: modelConfig.model,
+            mode: modelConfig.id.includes('quicksilver') ? 'quicksilver' : 'standard',
           }
 
       const response = await fetch(endpoint, {
