@@ -5,6 +5,7 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/cors": "^2.8.19",
     "prisma": "^7.9.1"
   },
   "peerDependencies": {
@@ -12,12 +13,15 @@
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.17",
+    "@openrouter/ai-sdk-provider": "^3.0.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@supabase/supabase-js": "^2.112.3",
     "@tavily/core": "^0.7.6",
     "@types/express": "^5.0.6",
     "ai": "^7.0.44",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "groq-sdk": "^1.5.0",
     "pg": "^8.11.3",
