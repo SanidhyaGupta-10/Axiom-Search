@@ -2,7 +2,7 @@ import express from 'express';
 import { tavily } from '@tavily/core';
 import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
-import { SYSTEM_PROMPT, PROMPT_TEMPLATE } from './prompt';
+import { SYSTEM_PROMPT, PROMPT_TEMPLATE, formatSearchResults } from './prompt';
 import prisma from './db';
 import { middleware } from './middleware';
 import cors from 'cors';
@@ -95,20 +95,47 @@ app.post('/conversations/:conversationId', middleware, async (req: any, res) => 
     }
 });
 
+// Delete a conversation
+app.delete('/conversations/:conversationId', middleware, async (req: any, res) => {
+    try {
+        await prisma.conversation.deleteMany({
+            where: { id: req.params.conversationId, userId: req.userId },
+        });
+        return res.json({ ok: true });
+    } catch (err) {
+        console.error('[DELETE /conversations/:id]', err);
+        return res.status(500).json({ error: 'Failed to delete conversation' });
+    }
+});
+
 // ──────────── LLM / Search ────────────
 
-// Fresh search + LLM stream (no history)
-app.post('/perplexity-ask', middleware, async (req, res) => {
+// Fresh search + LLM stream + save conversation & messages
+app.post('/perplexity-ask', middleware, async (req: any, res) => {
     try {
         const query = req.body.query;
         if (!query) return res.status(400).json({ error: 'query is required' });
 
+        const userId = req.userId;
+
+        // Create conversation in database
+        const slug = query.toLowerCase().slice(0, 50).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'search';
+        const conversation = await prisma.conversation.create({
+            data: {
+                title: query.length > 50 ? query.slice(0, 47) + '...' : query,
+                slug,
+                userId: userId,
+            }
+        });
+
+        res.setHeader('x-conversation-id', conversation.id);
+
         // Web search
         const { results: webSearchResults } = await tavilyClient.search(query, { searchDepth: 'advanced' });
 
-        // Build prompt
+        // Build prompt with indexed citations
         const prompt = PROMPT_TEMPLATE
-            .replace('{{WEB_SEARCH_RESULTS}}', JSON.stringify(webSearchResults))
+            .replace('{{WEB_SEARCH_RESULTS}}', formatSearchResults(webSearchResults))
             .replace('{{USER_QUERY}}', query);
 
         // Stream LLM response
@@ -118,12 +145,34 @@ app.post('/perplexity-ask', middleware, async (req, res) => {
             system: SYSTEM_PROMPT,
         });
 
+        let fullAssistantAnswer = '';
         for await (const textPart of result.textStream) {
+            fullAssistantAnswer += textPart;
             res.write(textPart);
         }
 
+        // Persist messages to DB
+        if (fullAssistantAnswer.trim()) {
+            await prisma.$transaction([
+                prisma.message.create({
+                    data: { conversationId: conversation.id, role: 'USER', content: query }
+                }),
+                prisma.message.create({
+                    data: { conversationId: conversation.id, role: 'ASSISTANT', content: fullAssistantAnswer }
+                }),
+            ]);
+        }
+
         res.write('\n------SOURCES-------\n');
-        webSearchResults.forEach(r => res.write(JSON.stringify(r.url)));
+        res.write(JSON.stringify({
+            conversationId: conversation.id,
+            sources: webSearchResults.map((r, i) => ({
+                id: i + 1,
+                title: r.title,
+                url: r.url,
+                content: r.content
+            }))
+        }));
         res.end();
     } catch (err) {
         console.error('[POST /perplexity-ask]', err);
