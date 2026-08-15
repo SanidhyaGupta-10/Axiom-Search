@@ -29,11 +29,23 @@ export default function Dashboard() {
                 const { data: { session } } = await supabase.auth.getSession();
                 const jwt = session?.access_token;
 
-                axios.post(`${BACKEND_URL}`)
+                try {
+                  const response = await axios.get(
+                    `${BACKEND_URL}/conversations`,
+                    {
+                      headers: {
+                        Authorization: `Bearer ${jwt}`
+                      }
+                    }
+                  );
+                  console.log('Conversation response:', response.data);
+                } catch (err) {
+                  console.error('Error fetching conversations:', err);
+                }
             }
         }
         getConversations();
-    }, [])
+    }, [user])
 
     return (
         <div>
