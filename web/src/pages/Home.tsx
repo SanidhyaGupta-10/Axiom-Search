@@ -15,6 +15,19 @@ import { MessageThread } from "../components/MessageThread"
 import { FollowupBar } from "../components/FollowupBar"
 
 export function Home() {
+  // ── Local UI state (must be declared before hooks that read them) ──
+  const [query, setQuery] = useState("")
+  const [selectedModelId, setSelectedModelId] = useState<string>("groq-llama-70b")
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeTab, setActiveTab] = useState<"answer" | "sources">("answer")
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+
+  // ── Refs + navigation ──
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const answerScrollRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
+
   // ── Data + server-action hooks ──
   const { user, signOut } = useAuth()
   const {
@@ -39,19 +52,6 @@ export function Home() {
     onConversationIdResolved: setCurrentConversationId,
     prependConversation,
   })
-
-  // ── Local UI state ──
-  const [query, setQuery] = useState("")
-  const [selectedModelId, setSelectedModelId] = useState<string>("groq-llama-70b")
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState<"answer" | "sources">("answer")
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
-
-  // ── Refs + navigation ──
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const answerScrollRef = useRef<HTMLDivElement>(null)
-  const navigate = useNavigate()
 
   // Auto-scroll on streaming
   useEffect(() => {
